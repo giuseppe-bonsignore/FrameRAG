@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ROOT_DIR = "/Users/giuseppebonsignore/Desktop/FrameRAG_v2"
-DATA_DIR = "/Users/giuseppebonsignore/Desktop/FrameRAG_v2/data"
+ROOT_DIR = "root_dir_path"
+DATA_DIR = "root_dir_path/data"
 TTL_PATH = DATA_DIR + "/premon-2018a-fn15-inf.ttl"
 FRAME_CORPUS = DATA_DIR + "/frame_corpus.txt"
 INDEX_DIR = DATA_DIR + "/frame_index"
