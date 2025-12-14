@@ -10,7 +10,7 @@ from neo4j_retriever import close_driver
 
 load_dotenv(find_dotenv(usecwd=True), override=True)
 
-OPENAI_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+OPENAI_MODEL = os.getenv("LLM_MODEL", "gpt-5")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
