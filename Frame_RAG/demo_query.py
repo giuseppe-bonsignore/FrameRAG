@@ -10,7 +10,7 @@ from neo4j_retriever import close_driver
 
 load_dotenv(find_dotenv(usecwd=True), override=True)
 
-OPENAI_MODEL = os.getenv("LLM_MODEL", "gpt-5")
+OPENAI_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -107,13 +107,10 @@ if __name__ == "__main__":
     print(baseline_rag(q))
     print("\n" + "="*60 + "\n")
 
-    # print("=== 3) Neo4j Vector Cypher Retriever (ANN + graph expansion) ===\n")
-    # print(neo4j_vector_cypher_rag(q))
-    # print("\n" + "="*60 + "\n")
-
-    # print("=== 3) Neo4j MultiLabel Vector Cypher Retriever (ANN + graph expansion) ===\n")
-    # print(neo4j_multilabel_vector_cypher_rag(q))
-
     print("=== 3) GraphRAG (ANN + graph expansion) ===\n")
     print(neo4j_graphRAG(q, 3))
+
+    print("=== 4) Neo4j MultiLabel Vector Cypher Retriever (ANN + graph expansion) ===\n")
+    print(neo4j_multilabel_vector_cypher_rag(q))
+
 
