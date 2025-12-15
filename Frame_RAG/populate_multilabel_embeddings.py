@@ -42,13 +42,26 @@ def check_index(session):
 def count_frames(session) -> int:
     return session.run("MATCH (n:MultiLabel) RETURN count(n) AS c").single()["c"]
 
+# def fetch_frames(session, skip: int, limit: int):
+#     q = """
+#     MATCH (n:MultiLabel)
+#     RETURN n.uri AS uri, coalesce(n.label,'') AS label, coalesce(n.definition,'') AS definition
+#     ORDER BY n.uri SKIP $skip LIMIT $limit
+#     """
+#     return list(session.run(q, skip=skip, limit=limit))
+
 def fetch_frames(session, skip: int, limit: int):
     q = """
     MATCH (n:MultiLabel)
-    RETURN n.uri AS uri, coalesce(n.label,'') AS label, coalesce(n.definition,'') AS definition
+    RETURN 
+      n.uri AS uri, 
+      labels(n) AS labels,
+      coalesce(n.label,'') AS label, 
+      coalesce(n.definition,'') AS definition
     ORDER BY n.uri SKIP $skip LIMIT $limit
     """
     return list(session.run(q, skip=skip, limit=limit))
+
 
 def embed_batch(texts: List[str]) -> List[List[float]]:
     tries = 0
@@ -69,6 +82,30 @@ def set_embeddings(session, rows: List[Tuple[str, List[float]]]):
     """
     session.run(q, rows=[{"uri": u, "MultiLabel_embedding": vec} for u, vec in rows])
 
+# def main():
+#     with driver.session(database=NEO4J_DATABASE) as s:
+#         check_index(s)
+#         total = count_frames(s)
+#         print(f"{total} nodes to (re)embed")
+
+#         processed = 0
+#         while processed < total:
+#             rows = fetch_frames(s, processed, READ_BATCH)
+#             if not rows: break
+
+#             uris  = [r["uri"] for r in rows]
+#             texts = [f"{r['label']} — {r['definition']}".strip() for r in rows]
+
+#             vectors: List[List[float]] = []
+#             for i in range(0, len(texts), EMBED_BATCH):
+#                 vectors.extend(embed_batch(texts[i:i+EMBED_BATCH]))
+
+#             assert len(vectors) == len(uris)
+#             set_embeddings(s, list(zip(uris, vectors)))
+
+#             processed += len(rows)
+#             print(f"upserted {processed}/{total}")
+
 def main():
     with driver.session(database=NEO4J_DATABASE) as s:
         check_index(s)
@@ -78,14 +115,43 @@ def main():
         processed = 0
         while processed < total:
             rows = fetch_frames(s, processed, READ_BATCH)
-            if not rows: break
+            if not rows:
+                break
 
-            uris  = [r["uri"] for r in rows]
-            texts = [f"{r['label']} — {r['definition']}".strip() for r in rows]
+            uris = []
+            texts = []
+
+        for r in rows:
+            uri  = r["uri"]
+            labs = r["labels"] or []
+
+            # 1) Primary "kind" (for quick type bias)
+            if "Frame" in labs:
+                kind = "Frame"
+            elif "FrameElement" in labs:
+                kind = "FrameElement"
+            elif "LexicalEntry" in labs:
+                kind = "LexicalEntry"
+            else:
+                kind = "Other"
+
+            # 2) Preserve *all* labels in a separate field
+            labels_str = ", ".join(labs)
+
+            text = (
+                f"TYPE: {kind}; "
+                f"LABELS: {labels_str}; "
+                f"URI: {uri}; "
+                f"NAME: {r['label']}; "
+                f"DEFINITION: {r['definition']}"
+            ).strip()
+
+            uris.append(uri)
+            texts.append(text)
 
             vectors: List[List[float]] = []
             for i in range(0, len(texts), EMBED_BATCH):
-                vectors.extend(embed_batch(texts[i:i+EMBED_BATCH]))
+                vectors.extend(embed_batch(texts[i:i + EMBED_BATCH]))
 
             assert len(vectors) == len(uris)
             set_embeddings(s, list(zip(uris, vectors)))
@@ -96,6 +162,6 @@ def main():
     driver.close()
     print("Done.")
 
+
 if __name__ == "__main__":
     main()
-
